@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    "importHelpers": true,
+    "allowSyntheticDefaultImports": true,
+    "moduleResolution": "Node",
+    "strict": true,
+    "target": "ES5",
+    "module": "ES6",
+    "rootDir": ".",
+    "jsx": "react-jsx",
+    "baseUrl": ".",
+    "paths": {
+      "*": [
+        "./packages/*/src/main"
+      ]
+    }
+  },
+  "include": [
+    "./*",
+    "./packages/*/src/main/**/*"
+  ]
+}
