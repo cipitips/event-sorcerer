@@ -7,10 +7,9 @@
     "target": "ES5",
     "module": "ES6",
     "rootDir": ".",
-    "jsx": "react-jsx",
     "baseUrl": ".",
     "paths": {
-      "*": [
+      "@event-sorcerer/*": [
         "./packages/*/src/main"
       ]
     }
