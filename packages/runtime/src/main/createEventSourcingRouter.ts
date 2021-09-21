@@ -101,7 +101,7 @@ export function createEventSourcingRouter(repository: IRepository, commandDispat
       if (allCommands.length === 0) {
         return;
       }
-      const nextCommands = Arrays.fromMany(allCommands).map((command, index) => deriveCommand(event, command, index));
+      const nextCommands = allCommands.map((command, index) => deriveCommand(event, command, index));
 
       await commandDispatcher.dispatch(nextCommands);
     },

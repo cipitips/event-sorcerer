@@ -14,7 +14,7 @@ export function createRepository(eventStore: IEventStore, eventProducer: IMessag
 
       const aggregateState: IAggregateSnapshot<typeof state> = {
         id,
-        version: snapshot?.version || BigInt(0),
+        version: snapshot?.version || 0n,
         state,
       };
 

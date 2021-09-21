@@ -1,7 +1,7 @@
 {
-  "name": "@event-sorcerer/code-gen",
+  "name": "@event-sorcerer/compiler",
   "version": "1.0.0",
-  "description": "EventSorcerer code-gen command line interface.",
+  "description": "EventSorcerer compiler.",
   "main": "./lib/index-cjs.js",
   "module": "./lib/index.js",
   "types": "./lib/index.d.ts",
