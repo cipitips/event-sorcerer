@@ -5,11 +5,11 @@ import {
   createRepository,
   ISentAggregateMessage,
   ISentAggregateEvent,
-  IAggregate,
+  IAggregateAgent,
   IAggregateHandler,
   ICommand,
   IMessage,
-  IEventListener,
+  IEventListenerAgent,
 } from '../main';
 import {mockCommand, mockEvent} from './mock-utils';
 
@@ -31,7 +31,7 @@ describe('createEventSourcingContainer', () => {
 
     const container = createEventSourcingRouter(repo, commandBus);
 
-    const aggregate: IAggregate = {
+    const aggregate: IAggregateAgent = {
       name: 'Foo',
       handleCommand: jest.fn(() => <ReadonlyArray<IMessage>>[
         {type: 'event1Type', payload: {foo: 777}},
@@ -94,7 +94,7 @@ describe('createEventSourcingContainer', () => {
 
     const container = createEventSourcingRouter(repo, commandBus);
 
-    const processManager: IEventListener = {
+    const processManager: IEventListenerAgent = {
       name: 'Foo',
       handleAdoptedEvent: jest.fn(() => <ReadonlyArray<ICommand>>[
         {

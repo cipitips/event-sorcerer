@@ -40,5 +40,14 @@
         }
       }
     }
+  },
+  "dependencies": {
+    "@jtdc/types": "^1.0.0",
+    "@smikhalevski/codegen": "^2.0.1",
+    "change-case-all": "^1.0.14",
+    "json-pointer": "^0.6.1"
+  },
+  "devDependencies": {
+    "@types/json-pointer": "^1.0.31"
   }
 }

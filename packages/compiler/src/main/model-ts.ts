@@ -1,5 +1,5 @@
-import {IHandlerNode, IMessageNode} from './model-ast-types';
-import {HandlerType} from './model-types';
+import {IAgentNode, IMessageNode} from './model-ast-types';
+import {AgentType} from './model-types';
 import {
   compileAccessor,
   compileDocComment,
@@ -22,13 +22,13 @@ export interface IHandlerTsOptions {
   renameEnumValue: (name: string) => string;
 }
 
-export function compileTsFromHandlers(handlerNodes: Map<string, IHandlerNode>, options?: Partial<IHandlerTsOptions>): string {
+export function compileTsFromHandlers(handlerNodes: Map<string, IAgentNode>, options?: Partial<IHandlerTsOptions>): string {
   let source = '';
   handlerNodes.forEach((handlerNode) => source += compileTsFromHandler(handlerNode, options));
   return source;
 }
 
-export function compileTsFromHandler(handler: IHandlerNode, options?: Partial<IHandlerTsOptions>): string {
+export function compileTsFromHandler(handler: IAgentNode, options?: Partial<IHandlerTsOptions>): string {
   const allOptions = {...handlerTsOptions, ...options};
 
   const {
@@ -39,10 +39,10 @@ export function compileTsFromHandler(handler: IHandlerNode, options?: Partial<IH
     renameEnumValue,
   } = allOptions;
 
-  const stateful = handler.handlerType === HandlerType.AGGREGATE || handler.handlerType === HandlerType.PROCESS_MANAGER;
+  const stateful = handler.type === AgentType.AGGREGATE || handler.type === AgentType.PROCESS_MANAGER;
 
-  const typeName = renameInterface(concat(handler.name, handler.handlerType)); // IFooService
-  const handlerTypeName = renameInterface(concat(handler.name, handler.handlerType, 'Handler')); // IFooServiceHandler
+  const typeName = renameInterface(concat(handler.name, handler.type)); // IFooService
+  const handlerTypeName = renameInterface(concat(handler.name, handler.type, 'Handler')); // IFooServiceHandler
   const stateTypeName = renameInterface(handler.name); // IFoo
 
   const commandTypeName = handler.commands.size ? renameType(concat(handler.name, 'Command')) : 'never'; // FooCommand
@@ -52,13 +52,13 @@ export function compileTsFromHandler(handler: IHandlerNode, options?: Partial<IH
   const adoptedEventTypeName = handler.adoptedEvents.size ? renameType(concat(handler.name, 'AdoptedEvent')) : 'never'; // FooAdoptedEvent
 
   const renameMessageInterface = (message: IMessageNode) => renameInterface(concat(message.handler.name, message.type));
-  const compileMessageType = (message: IMessageNode) => renameEnum(concat(message.handler.name, message.messageType, 'Type')) + '.' + renameEnumValue(message.type);
+  const compileMessageType = (message: IMessageNode) => renameEnum(concat(message.handler.name, message.kind, 'Type')) + '.' + renameEnumValue(message.type);
 
   let source = '';
 
-  switch (handler.handlerType) {
+  switch (handler.type) {
 
-    case HandlerType.AGGREGATE:
+    case AgentType.AGGREGATE:
       source += `export interface ${typeName} extends IAggregate<`
           + stateTypeName + ','
           + handlerTypeName + ','
@@ -68,7 +68,7 @@ export function compileTsFromHandler(handler: IHandlerNode, options?: Partial<IH
           + '>{';
       break;
 
-    case HandlerType.PROCESS_MANAGER:
+    case AgentType.PROCESS_MANAGER:
       source += `export interface ${typeName} extends IProcessManager<`
           + stateTypeName + ','
           + handlerTypeName + ','
@@ -80,7 +80,7 @@ export function compileTsFromHandler(handler: IHandlerNode, options?: Partial<IH
           + '>{';
       break;
 
-    case HandlerType.EVENT_LISTENER:
+    case AgentType.EVENT_LISTENER:
       source += `export interface ${typeName} extends IEventListener<`
           + handlerTypeName + ','
           + adoptedCommandTypeName + ','
@@ -88,7 +88,7 @@ export function compileTsFromHandler(handler: IHandlerNode, options?: Partial<IH
           + '>{';
       break;
 
-    case HandlerType.SERVICE:
+    case AgentType.SERVICE:
       source += `export interface ${typeName} extends IService<`
           + handlerTypeName + ','
           + commandTypeName + ','
@@ -266,7 +266,7 @@ function compileMessageInterfaces(handlerName: string, messages: Map<string, IMe
     }), {}),
   });
 
-  const messageType = Array.from(messages.values())[0].messageType;
+  const messageType = Array.from(messages.values())[0].kind;
   const definitions = new Map<string, JtdNode<ITsJtdMetadata>>([[renameType(concat(handlerName, messageType)), messageUnion]]);
 
   return compileTsFromJtdDefinitions(definitions, {

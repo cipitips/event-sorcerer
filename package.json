@@ -10,7 +10,8 @@
     "release-docs": "npm run clean && npm run docs && npm run publish-docs"
   },
   "workspaces": [
-    "./packages/runtime"
+    "./packages/runtime",
+    "./packages/compiler"
   ],
   "devDependencies": {
     "@rollup/plugin-node-resolve": "^13.0.0",

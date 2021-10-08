@@ -4,7 +4,7 @@ import {
   createRepository,
   ISentAggregateMessage,
   ISentAggregateEvent,
-  IAggregate,
+  IAggregateAgent,
   IAggregateHandler,
 } from '../main';
 import {toIter} from '../../../lib/src/main/lang/collections/Arrays';
@@ -13,7 +13,7 @@ import {mockEvent} from './mock-utils';
 describe('createRepository', () => {
 
   test('saves events to the event store and publishes to them to the message bus', async () => {
-    const aggregate: IAggregate<any> = {
+    const aggregate: IAggregateAgent<any> = {
       name: 'Foo',
       handleCommand(handler, command, state) {
         return [];
@@ -57,7 +57,7 @@ describe('createRepository', () => {
   });
 
   test('loads aggregate and creates initial state', async () => {
-    const aggregate: IAggregate<any> = {
+    const aggregate: IAggregateAgent<any> = {
       name: 'Foo',
       handleCommand: jest.fn(),
       applyEvent: jest.fn(),
@@ -100,7 +100,7 @@ describe('createRepository', () => {
   });
 
   test('loads aggregate from the snapshot', async () => {
-    const aggregate: IAggregate<any> = {
+    const aggregate: IAggregateAgent<any> = {
       name: 'Foo',
       handleCommand: jest.fn(),
       applyEvent: jest.fn(),
