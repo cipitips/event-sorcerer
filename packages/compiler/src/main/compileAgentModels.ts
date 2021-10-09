@@ -106,6 +106,10 @@ export interface IAgentModelsCompilerOptions extends ITypesCompilerOptions<unkno
    * handler (see {@link renameAgentHandlerInterface}).
    */
   renameAdoptedEventHandlerMethod?(messageModel: IMessageModel, agentModel: IAgentModel): string;
+
+  renameMessageTypeSet?(agentModel: IAgentModel, messageKind: MessageKind): string;
+
+  renameAdoptedMessageTypeSet?(agentModel: IAgentModel, messageKind: MessageKind): string;
 }
 
 export function compileAgentModels(agentModels: Record<string, IAgentModel>, options?: IAgentModelsCompilerOptions): Record<string, string> {
@@ -123,7 +127,6 @@ function compileAgentModel(filePath: string, agentModels: Record<string, IAgentM
 
   const {
     renameType,
-
     renameAgentInterface,
     renameAgentNamespace,
     renameAgentHandlerInterface,
@@ -137,6 +140,8 @@ function compileAgentModel(filePath: string, agentModels: Record<string, IAgentM
     renameCommandHandlerMethod,
     renameEventHandlerMethod,
     renameAdoptedEventHandlerMethod,
+    renameMessageTypeSet,
+    renameAdoptedMessageTypeSet,
   } = options;
 
   let src = '';
@@ -164,6 +169,10 @@ function compileAgentModel(filePath: string, agentModels: Record<string, IAgentM
   const alertTypeName = renameMessageUnionTypeAlias(agentModel, MessageKind.ALERT);
   const adoptedCommandTypeName = renameAdoptedMessageUnionTypeAlias(agentModel, MessageKind.COMMAND);
   const adoptedEventTypeName = renameAdoptedMessageUnionTypeAlias(agentModel, MessageKind.EVENT);
+
+  const commandTypeSetName = renameMessageTypeSet(agentModel, MessageKind.COMMAND);
+  const eventTypeSetName = renameMessageTypeSet(agentModel, MessageKind.EVENT);
+  const adoptedEventTypeSetName = renameAdoptedMessageTypeSet(agentModel, MessageKind.EVENT);
 
   const compileNamespacedType = (typeName: string) => agentNamespace + '.' + typeName;
 
@@ -315,33 +324,6 @@ function compileAgentModel(filePath: string, agentModels: Record<string, IAgentM
   // endregion
 
 
-  // region Constants
-
-  // Event types
-  if (agentEvents) {
-    src += 'const eventTypes=new Set<string>(['
-        + mapConcat(agentEvents, (messageModel) => compileMessageType(messageModel, agentModel, MessageKind.EVENT), ',')
-        + ']);';
-  }
-
-  // Command types
-  if (agentCommands) {
-    src += 'const commandTypes=new Set<string>(['
-        + mapConcat(agentCommands, (messageModel) => compileMessageType(messageModel, agentModel, MessageKind.COMMAND), ',')
-        + ']);';
-  }
-
-  // Adopted event types
-  if (agentAdoptedEvents) {
-    src += 'const adoptedEventTypes=new Set<string>('
-        + mapConcat(agentAdoptedEvents, (ref) => {
-          const [relatedAgentModel, relatedMessageModel] = getReferencedMessageModel(agentModels, ref, MessageKind.EVENT);
-          return compileMessageType(relatedMessageModel, relatedAgentModel, MessageKind.EVENT);
-        }, ',')
-        + ');';
-  }
-  // endregion
-
   // region Namespace
   src += `export namespace ${agentNamespace}{`;
 
@@ -379,6 +361,34 @@ function compileAgentModel(filePath: string, agentModels: Record<string, IAgentM
   // endregion
 
 
+  // region Constants
+
+  // Event types
+  if (agentEvents) {
+    src += `const ${eventTypeSetName}=new Set<string>([`
+        + mapConcat(agentEvents, (messageModel) => compileMessageType(messageModel, agentModel, MessageKind.EVENT), ',')
+        + ']);';
+  }
+
+  // Command types
+  if (agentCommands) {
+    src += `const ${commandTypeSetName}=new Set<string>([`
+        + mapConcat(agentCommands, (messageModel) => compileMessageType(messageModel, agentModel, MessageKind.COMMAND), ',')
+        + ']);';
+  }
+
+  // Adopted event types
+  if (agentAdoptedEvents) {
+    src += `const ${adoptedEventTypeSetName}=new Set<string>(`
+        + mapConcat(agentAdoptedEvents, (ref) => {
+          const [relatedAgentModel, relatedMessageModel] = getReferencedMessageModel(agentModels, ref, MessageKind.EVENT);
+          return compileMessageType(relatedMessageModel, relatedAgentModel, MessageKind.EVENT);
+        }, ',')
+        + ');';
+  }
+  // endregion
+
+
   // region Singleton
   src += `export const ${agentSingletonName}:${agentTypeName}={`
       + `type:AgentType.${constantCase(agentType)},`
@@ -413,7 +423,7 @@ function compileAgentModel(filePath: string, agentModels: Record<string, IAgentM
     // isSupportedEvent
     src += 'isSupportedEvent(message):message is '
         + compileNamespacedType(eventTypeName)
-        + '{return eventTypes.has(message.type)},';
+        + `{return ${eventTypeSetName}.has(message.type)},`;
 
     // getAggregateId
     src += 'getAggregateId(message){'
@@ -436,7 +446,7 @@ function compileAgentModel(filePath: string, agentModels: Record<string, IAgentM
     // isSupportedCommand
     src += 'isSupportedCommand(message):message is '
         + compileNamespacedType(commandTypeName)
-        + '{return commandTypes.has(message.type)},';
+        + `{return ${commandTypeSetName}.has(message.type)},`;
 
     // handleCommand
     src += `handleCommand(handler,command${stateful ? ',state' : ''}){`
@@ -466,7 +476,7 @@ function compileAgentModel(filePath: string, agentModels: Record<string, IAgentM
     // isAdoptedEvent
     src += 'isAdoptedEvent(message):message is '
         + compileNamespacedType(adoptedEventTypeName)
-        + '{return adoptedEventTypes.has(message.type)},';
+        + `{return ${adoptedEventTypeSetName}.has(message.type)},`;
 
     // handleAdoptedEvent
     src += 'handleAdoptedEvent(handler,event){'
@@ -554,6 +564,7 @@ const pluralMessageKinds = {
 
 export const agentModelsCompilerOptions: Required<IAgentModelsCompilerOptions> = {
   ...typesCompilerOptions,
+
   renameAgentInterface: (agentModel) => pascalCase(agentModel.name) + 'Agent',
   renameAgentNamespace: (agentModel) => pascalCase(agentModel.name) + 'Agent',
   renameAgentHandlerInterface: (agentModel) => pascalCase(agentModel.name) + 'Handler',
@@ -568,4 +579,6 @@ export const agentModelsCompilerOptions: Required<IAgentModelsCompilerOptions> =
   renameCommandHandlerMethod: (messageModel) => 'handle' + pascalCase(messageModel.type),
   renameEventHandlerMethod: (messageModel) => 'apply' + pascalCase(messageModel.type),
   renameAdoptedEventHandlerMethod: (messageModel, agentModel) => 'notice' + pascalCase(agentModel.name) + pascalCase(messageModel.type),
+  renameMessageTypeSet: (agentModel, messageKind) => camelCase(messageKind) + 'Types',
+  renameAdoptedMessageTypeSet: (agentModel, messageKind) => 'adopted' + pascalCase(messageKind) + 'Types',
 };
