@@ -1,33 +1,24 @@
-import {Awaitable, Many, Maybe, ReadonlyMany} from './utility-types';
+import {Awaitable, Maybe, ReadonlyMany, Uuid} from './utility-types';
+import {IMessage} from './message-types';
 
 /**
- * An alias for UUID, for documentation purposes.
- */
-export type Uuid = string;
-
-/**
- * A message passed between agents.
- */
-export interface IMessage {
-  type: string;
-  payload: unknown;
-}
-
-export const enum AgentType {
-  AGGREGATE = 'aggregate',
-  PROCESS_MANAGER = 'processManager',
-  EVENT_LISTENER = 'eventListener',
-  SERVICE = 'service',
-}
-
-/**
- * Recognized agents.
+ * An agent is a message processing unit that communicates with other agents by dispatching and consuming messages.
  */
 export type Agent =
     | IAggregateAgent
     | IProcessManagerAgent
     | IEventListenerAgent
     | IServiceAgent;
+
+/**
+ * Type of an agent.
+ */
+export const enum AgentType {
+  AGGREGATE = 'aggregate',
+  PROCESS_MANAGER = 'processManager',
+  EVENT_LISTENER = 'eventListener',
+  SERVICE = 'service',
+}
 
 /**
  * The system agent that can receive or dispatch messages.
@@ -37,50 +28,12 @@ export interface IAgent {
   /**
    * The type of an agent.
    */
-  type: AgentType;
+  readonly type: AgentType;
 
   /**
    * The system-wide unique name of an agent that can be used by persistence or service discovery.
    */
-  name: string;
-}
-
-/**
- * A message that was dispatched through a messaging system.
- */
-export interface IDispatchedMessage extends IMessage {
-
-  /**
-   * The unique message ID.
-   */
-  id: Uuid;
-
-  /**
-   * The timestamp when the message was dispatched.
-   */
-  timestamp: number;
-
-  /**
-   * The ID assigned to the chain of events.
-   */
-  correlationId: Uuid;
-
-  /**
-   * The ID of the message that was the reason why this message was dispatched.
-   */
-  causationId: Uuid | null;
-}
-
-/**
- * A message that is aware of the optimistic concurrency.
- */
-export interface IVersionedMessage extends IDispatchedMessage {
-
-  /**
-   * The monotonically ascending index of the message in scope of an event stream. Versioning allows solving optimistic
-   * concurrency issues when updating aggregates.
-   */
-  version: bigint;
+  readonly name: string;
 }
 
 /**
@@ -249,108 +202,4 @@ export interface IServiceAgent<Handler = unknown, Command extends IMessage = IMe
    * @returns Events that should be dispatched or alerts to notify telemetry.
    */
   handleCommand(handler: Handler, command: Command): Awaitable<ReadonlyMany<Event | Alert>>;
-}
-
-/**
- * A snapshot of the aggregate state that was loaded from the repository.
- *
- * @template State The aggregate state.
- */
-export interface IAggregateSnapshot<State = unknown> {
-
-  /**
-   * The ID of an aggregate.
-   */
-  id: Uuid;
-
-  /**
-   * The version of the last event that was used during the assembly of the snapshot's state.
-   */
-  version: bigint;
-
-  /**
-   * The state of an aggregate.
-   */
-  state: Readonly<State>;
-}
-
-/**
- * A repository that loads and saves aggregates as streams of events.
- */
-export interface IRepository {
-
-  /**
-   * Returns `true` if an aggregate with the given ID was saved in the past.
-   */
-  exists(aggregate: IAggregateAgent, id: Uuid): Promise<boolean>;
-
-  /**
-   * Restores the state of an aggregate from the persistence layer.
-   */
-  load<Aggregate extends IAggregateAgent<State, Handler>, State, Handler extends IAggregateHandler<State>>(aggregate: Aggregate, handler: Handler, id: Uuid): Promise<Readonly<IAggregateSnapshot<State>>>;
-
-  /**
-   * Persists events that were produced using the given snapshot.
-   *
-   * @param aggregate The aggregate for which events were dispatched.
-   * @param snapshot The state from which events were derived.
-   * @param events The events that were dispatched.
-   */
-  save<Aggregate extends IAggregateAgent<State>, State>(aggregate: Aggregate, snapshot: Readonly<IAggregateSnapshot<State>>, events: Array<IVersionedMessage>): Promise<void>;
-}
-
-/**
- * An abstraction from the database.
- */
-export interface IEventStore {
-
-  /**
-   * Returns `true` if an aggregate with the given ID has a snapshot or at least one event.
-   */
-  exists(name: string, id: Uuid): Promise<boolean>;
-
-  /**
-   * Returns the latest available snapshot for the given aggregate or `undefined` if there's no snapshot available.
-   */
-  loadSnapshot(name: string, id: string): Promise<IAggregateSnapshot | undefined>;
-
-  /**
-   * Saves a snapshot.
-   *
-   * @throws OptimisticLockError If saving an aggregate failed because of the optimistic locking.
-   */
-  saveSnapshot(name: string, snapshot: IAggregateSnapshot): Promise<void>;
-
-  /**
-   * Removes the snapshot for the aggregate if it is available.
-   */
-  dropSnapshot(name: string, id: string, version: bigint): Promise<void>;
-
-  /**
-   * Returns an iterator that yields events that were persisted for an aggregate with the given ID.
-   *
-   * @param name The name of the aggregate to load. Store may use different tables or even databases to store
-   *     aggregates and `aggregateName` can be the storage lookup key.
-   * @param id The ID of the aggregate for which events must be loaded.
-   * @param baseVersion The aggregate version after which (exclusive) events should be loaded.
-   */
-  loadEvents(name: string, id: Uuid, baseVersion?: bigint): AsyncIterable<IVersionedMessage>;
-
-  /**
-   * Persists events for the aggregate in the event store.
-   *
-   * @throws OptimisticLockError If saving an aggregate failed because of the optimistic locking.
-   */
-  saveEvents(name: string, snapshot: IAggregateSnapshot, events: Array<IVersionedMessage>): Promise<void>;
-}
-
-/**
- * A message broker abstraction.
- */
-export interface IMessageDispatcher {
-
-  /**
-   * Dispatches messages through the message broker.
-   */
-  dispatch(messages: Many<IDispatchedMessage>): Promise<void>;
 }

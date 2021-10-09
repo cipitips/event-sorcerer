@@ -4,9 +4,9 @@
 export class OptimisticLockError extends Error {
 
   /**
-   * The name of the handler that couldn't be persisted.
+   * The name of the agent that couldn't be persisted.
    */
-  public handlerName = '<unknown>';
+  public agentName = '<unknown>';
 
   constructor() {
     super();
