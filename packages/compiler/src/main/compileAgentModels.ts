@@ -12,7 +12,7 @@ import {
   RefResolver,
   typesCompilerOptions,
 } from '@jtdc/compiler';
-import {IJtdDict} from '@jtdc/types';
+import {IJtdDict, JtdNode} from '@jtdc/types';
 
 const throwRefResolver: RefResolver<unknown> = (node) => die('Unresolved reference: ' + node.ref);
 
@@ -46,7 +46,7 @@ export interface IAgentModelsCompilerOptions extends ITypesCompilerOptions<unkno
   /**
    * The interface that describes a state of a stateful agent.
    */
-  renameAgentStateInterface?(agentModel: IAgentModel): string;
+  renameAgentStateType?(agentModel: IAgentModel, node: JtdNode<unknown>): string;
 
   /**
    * The singleton that implements the agent interface (see {@link renameAgentInterface}).
@@ -130,7 +130,7 @@ function compileAgentModel(filePath: string, agentModels: Record<string, IAgentM
     renameAgentInterface,
     renameAgentNamespace,
     renameAgentHandlerInterface,
-    renameAgentStateInterface,
+    renameAgentStateType,
     renameAgentSingletonConst,
     renameMessageFactoryMethod,
     renameMessageInterface,
@@ -161,7 +161,7 @@ function compileAgentModel(filePath: string, agentModels: Record<string, IAgentM
   const agentTypeName = renameAgentInterface(agentModel);
   const agentNamespace = renameAgentNamespace(agentModel);
   const agentHandlerTypeName = renameAgentHandlerInterface(agentModel);
-  const agentStateTypeName = renameAgentStateInterface(agentModel);
+  const agentStateTypeName = agentState ? renameAgentStateType(agentModel, parseJtd(agentState)) : 'never';
   const agentSingletonName = renameAgentSingletonConst(agentModel);
 
   const commandTypeName = renameMessageUnionTypeAlias(agentModel, MessageKind.COMMAND);
@@ -568,7 +568,7 @@ export const agentModelsCompilerOptions: Required<IAgentModelsCompilerOptions> =
   renameAgentInterface: (agentModel) => pascalCase(agentModel.name) + 'Agent',
   renameAgentNamespace: (agentModel) => pascalCase(agentModel.name) + 'Agent',
   renameAgentHandlerInterface: (agentModel) => pascalCase(agentModel.name) + 'Handler',
-  renameAgentStateInterface: (agentModel) => pascalCase(agentModel.name),
+  renameAgentStateType: (agentModel) => pascalCase(agentModel.name),
   renameAgentSingletonConst: (agentModel) => pascalCase(agentModel.name),
   renameMessageFactoryMethod: (messageModel) => camelCase(messageModel.type),
   renameMessageInterface: (messageModel) => pascalCase(messageModel.type),

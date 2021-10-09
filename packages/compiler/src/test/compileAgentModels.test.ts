@@ -10,17 +10,20 @@ describe('compileAgentModels', () => {
         name: 'User',
         type: AgentType.AGGREGATE,
         state: {
-          definitions: {
-            uuid: {
-              type: 'string'
-            }
-          },
-          properties: {
-            id: {ref: 'uuid'},
-            firstName: {type: 'string'},
-            age: {type: 'int8'},
-          },
+          type: 'string'
         },
+        // state: {
+        //   definitions: {
+        //     uuid: {
+        //       type: 'string'
+        //     }
+        //   },
+        //   properties: {
+        //     id: {ref: 'uuid'},
+        //     firstName: {type: 'string'},
+        //     age: {type: 'int8'},
+        //   },
+        // },
         commands: [
           {
             type: 'CREATE',
@@ -68,7 +71,7 @@ describe('compileAgentModels', () => {
     },{
       // renameMessageTypeEnum: (agentModel, messageKind) => '___' + messageKind + 'Type',
       // renameMessageUnionTypeAlias: (agentModel, messageKind) => '___' + messageKind,
-      // renameAgentStateInterface: (agentModel) => 'Okay',
+      // renameAgentStateType: (agentModel) => 'Okay',
     })['./user.ts'], {
       arrowParens: 'always',
       bracketSpacing: false,
