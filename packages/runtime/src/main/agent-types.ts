@@ -2,7 +2,7 @@ import {Awaitable, Maybe, ReadonlyMany, Uuid} from './utility-types';
 import {IMessage} from './message-types';
 
 /**
- * An agent is a message processing unit that communicates with other agents by dispatching and consuming messages.
+ * An agent is a message processing unit that communicates with other agents via messages.
  */
 export type Agent =
     | IAggregateAgent
@@ -18,10 +18,11 @@ export const enum AgentType {
   PROCESS_MANAGER = 'processManager',
   EVENT_LISTENER = 'eventListener',
   SERVICE = 'service',
+  MONITOR = 'monitor',
 }
 
 /**
- * The system agent that can receive or dispatch messages.
+ * The agent that can receive or dispatch messages.
  */
 export interface IAgent {
 
@@ -58,7 +59,9 @@ export interface IAggregateHandler<State = unknown> {
  * @template Event Events that can be applied to the state of the aggregate.
  * @template Alert Alerts that aggregate can dispatch.
  */
-export interface IAggregateAgent<State = unknown, Handler extends IAggregateHandler<State> = IAggregateHandler<State>, Command extends IMessage = IMessage, Event extends IMessage = IMessage, Alert extends IMessage = IMessage> extends IAgent {
+export interface IAggregateAgent<State = unknown, Handler extends IAggregateHandler<State> = IAggregateHandler<State>, Command extends IMessage = IMessage, Event extends IMessage = IMessage, Alert extends IMessage = IMessage>
+    extends IAgent {
+
   type: AgentType.AGGREGATE;
 
   /**
@@ -101,8 +104,9 @@ export interface IAggregateAgent<State = unknown, Handler extends IAggregateHand
    * @param handler The handler that knows how to apply aggregate events to the state.
    * @param event The event to apply to the state.
    * @param state The mutable state of the aggregate to which the event must be applied.
+   * @returns A `Promise` that is resolved after event is applied.
    */
-  applyEvent(handler: Handler, event: Event, state: State): void;
+  applyEvent(handler: Handler, event: Event, state: State): Awaitable<void>;
 }
 
 /**
@@ -116,7 +120,9 @@ export interface IAggregateAgent<State = unknown, Handler extends IAggregateHand
  * @template AdoptedCommand Commands adopted from other handlers that this process manager notices.
  * @template AdoptedEvent Events adopted from other handlers that this process manager can dispatch.
  */
-export interface IProcessManagerAgent<State = unknown, Handler extends IAggregateHandler<State> = IAggregateHandler<State>, Command extends IMessage = IMessage, Event extends IMessage = IMessage, Alert extends IMessage = IMessage, AdoptedCommand extends IMessage = IMessage, AdoptedEvent extends IMessage = IMessage> extends Omit<IAggregateAgent<State, Handler, Command, Event, Alert>, 'type'> {
+export interface IProcessManagerAgent<State = unknown, Handler extends IAggregateHandler<State> = IAggregateHandler<State>, Command extends IMessage = IMessage, Event extends IMessage = IMessage, Alert extends IMessage = IMessage, AdoptedCommand extends IMessage = IMessage, AdoptedEvent extends IMessage = IMessage>
+    extends Omit<IAggregateAgent<State, Handler, Command, Event, Alert>, 'type'> {
+
   type: AgentType.PROCESS_MANAGER;
 
   /**
@@ -153,7 +159,9 @@ export interface IProcessManagerAgent<State = unknown, Handler extends IAggregat
  * @template AdoptedCommand Commands adopted from other handlers that this event listener notices.
  * @template AdoptedEvent Events adopted from other handlers that this event listener can dispatch.
  */
-export interface IEventListenerAgent<Handler = unknown, AdoptedCommand extends IMessage = IMessage, AdoptedEvent extends IMessage = IMessage> extends IAgent {
+export interface IEventListenerAgent<Handler = unknown, AdoptedCommand extends IMessage = IMessage, AdoptedEvent extends IMessage = IMessage>
+    extends IAgent {
+
   type: AgentType.EVENT_LISTENER;
 
   /**
@@ -183,7 +191,9 @@ export interface IEventListenerAgent<Handler = unknown, AdoptedCommand extends I
  * @template Event Events that service can dispatch.
  * @template Alert Alerts that service can dispatch.
  */
-export interface IServiceAgent<Handler = unknown, Command extends IMessage = IMessage, Event extends IMessage = IMessage, Alert extends IMessage = IMessage> extends IAgent {
+export interface IServiceAgent<Handler = unknown, Command extends IMessage = IMessage, Event extends IMessage = IMessage, Alert extends IMessage = IMessage>
+    extends IAgent {
+
   type: AgentType.SERVICE;
 
   /**
@@ -202,4 +212,35 @@ export interface IServiceAgent<Handler = unknown, Command extends IMessage = IMe
    * @returns Events that should be dispatched or alerts to notify telemetry.
    */
   handleCommand(handler: Handler, command: Command): Awaitable<ReadonlyMany<Event | Alert>>;
+}
+
+/**
+ * A monitor is an agent that handles alerts dispatched by other agents. Since alerts are ephemeral monitor agent may
+ * implement telemetry or other functions that aren't business-related. Monitor is the only agent type that can adopt
+ * alerts from other agents.
+ *
+ * @template Handler The handler that knows how to handle alerts.
+ * @template Alert Alerts that monitor can handle.
+ */
+export interface IMonitorAgent<Handler = unknown, Alert extends IMessage = IMessage>
+    extends IAgent {
+
+  type: AgentType.MONITOR;
+
+  /**
+   * Checks that the message is the alert that can be handled by this monitor.
+   *
+   * @param message An incoming message.
+   * @returns `true` if `message` is a command supported by the service.
+   */
+  isRecognizedAlert(message: IMessage): message is Alert;
+
+  /**
+   * Invokes a method on `handler` that handles the alert.
+   *
+   * @param handler The handler that knows how to handle alerts sent to a monitor.
+   * @param alert The alert to handle.
+   * @returns A `Promise` that is resolved after handling is completed.
+   */
+  handleAlert(handler: Handler, alert: Alert): Awaitable<void>;
 }

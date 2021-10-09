@@ -316,7 +316,7 @@ function compileAgentModel(filePath: string, agentModels: Record<string, IAgentM
           + `payload:${compileNamespacedType(renameMessageInterface(messageModel, agentModel, MessageKind.EVENT))}['payload']`
           + (stateful ? `,state:${agentStateTypeName}` : '')
           + ')'
-          + `:void;`;
+          + `:Awaitable<void>;`;
     }
   }
 
@@ -430,7 +430,7 @@ function compileAgentModel(filePath: string, agentModels: Record<string, IAgentM
         + 'switch(message.type){'
         + mapConcat(agentCommands, (messageModel) =>
             `case ${compileMessageType(messageModel, agentModel, MessageKind.COMMAND)}:`
-            + `return message.payload${JsonPointer.parse(messageModel.aggregateBy!).map((propertyName) => compilePropertyAccessor(propertyName))};`,
+            + `return message.payload${compileAggregateBy(messageModel.aggregateBy)};`,
         )
         + mapConcat(agentAdoptedEvents, (ref) => {
           const [relatedAgentModel, relatedMessageModel] = getReferencedMessageModel(agentModels, ref, MessageKind.EVENT);
@@ -465,8 +465,7 @@ function compileAgentModel(filePath: string, agentModels: Record<string, IAgentM
         + 'switch(event.type){'
         + mapConcat(agentEvents, (messageModel) =>
             `case ${compileMessageType(messageModel, agentModel, MessageKind.EVENT)}:`
-            + `handler.${renameEventHandlerMethod(messageModel, agentModel)}(event.payload${stateful ? ',state' : ''});`
-            + 'break;',
+            + `return handler.${renameEventHandlerMethod(messageModel, agentModel)}(event.payload${stateful ? ',state' : ''});`
         )
         + '}},';
   }
@@ -578,7 +577,7 @@ export const agentModelsCompilerOptions: Required<IAgentModelsCompilerOptions> =
   renameAdoptedMessageUnionTypeAlias: (agentModel, messageKind) => 'Adopted' + pascalCase(messageKind),
   renameCommandHandlerMethod: (messageModel) => 'handle' + pascalCase(messageModel.type),
   renameEventHandlerMethod: (messageModel) => 'apply' + pascalCase(messageModel.type),
-  renameAdoptedEventHandlerMethod: (messageModel, agentModel) => 'notice' + pascalCase(agentModel.name) + pascalCase(messageModel.type),
+  renameAdoptedEventHandlerMethod: (messageModel, agentModel) => 'capture' + pascalCase(agentModel.name) + pascalCase(messageModel.type),
   renameMessageTypeSet: (agentModel, messageKind) => camelCase(messageKind) + 'Types',
   renameAdoptedMessageTypeSet: (agentModel, messageKind) => 'adopted' + pascalCase(messageKind) + 'Types',
 };

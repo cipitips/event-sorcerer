@@ -2,36 +2,40 @@
 
 EventSorcerer is an event type definition compiler and runtime for event driven systems.
 
-## Dictionary
-
-Agent
-Message (receive, dispatch)
-
-
-## Handlers
-
-A handler is a process (such as a microservice, or a class instance) that consumes and produces various types of events,
-commands and alerts.
-
-There are four handler types: aggregate, process manager, event listener and service.
-
-An aggregate is a stateful handler that receives commands and emits events and alerts in response.
-
-An event listener is a stateless handler that notices events emitted by other handlers and emits commands in response.
-
-A process managers combines both aggregate and event listener. This can be treated as a state machine.
-
-A service is a handler that's implementation is arbitrary. Service can optionally receive commands and emit events.
-Service should be used when events sourcing isn't the best implementation.
-
 ## Messages
 
-Events describe changes in the handler state. The handler state can be restored from the sequence of events.
+Message is a central part of the event driven system. Messages come in several flavors:
 
-Alerts describe incidents that happened inside the handler, for example runtime errors. Alerts should not be persisted
-and can be used for telemetry.
+- **Commands** describe what should be done.
 
-Commands tell the handler what should be done. The handler can emit events and alerts in response to commands.
+- **Events** describe a fact of the system state change.
 
-Process managers and event listeners can adopt events from other handlers and emit their own commands or commands
-adopted from other handlers in response to these adopted events.
+- **Alerts** describe a non-essential facts that didn't affect the system state. These can be used for errors or
+  telemetry.
+
+Most of the time, system agent would receive a command and respond with an event. While commands and alerts are
+ephemeral (they shouldn't be persisted), events must be persisted, so system state can be reproduced from the sequence
+of events.
+
+## Agents
+
+An agent consumes and produces various types of messages.
+
+There are five agent types:
+
+- **Aggregate** is a stateful projection of events that can be altered with commands.
+
+- **Event Listener** is a stateless agent that captures events that were dispatched by other agents and produces
+  commands.
+
+- **Process Manager** is a hybrid of Aggregate and Event Listener. It has state and also can capture events from other
+  agents.
+
+- **Service** is an agent that uses commands and events for communication but has an arbitrary internal implementation.
+  For example, this agent type can be used to implement cron, or an adapter to non-event oriented storage.
+
+- **Monitor** is the only agent type that can capture alerts dispatched by other agents. Since alerts are ephemeral
+  monitor agent may implement telemetry or other functions that aren't business-related.
+
+A single business unit of your system (a microservice or a process) may implement multiple agents that work in scope of
+a bounding context.
