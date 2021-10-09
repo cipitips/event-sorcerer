@@ -1,4 +1,4 @@
-import {IJtd} from '@jtdc/types';
+import {IJtd, IJtdRoot} from '@jtdc/types';
 import {AgentType} from '@event-sorcerer/runtime';
 
 /**
@@ -15,7 +15,7 @@ export interface IAgentModel {
    * The system-wide unique name of an agent that can be used by persistence or service discovery.
    */
   name: string;
-  state?: IJtd<unknown>;
+  state?: IJtdRoot<unknown>;
   commands?: Array<IMessageModel>;
   events?: Array<IMessageModel>;
   alerts?: Array<IMessageModel>;
