@@ -1,5 +1,5 @@
 import {Many, Uuid} from './utility-types';
-import {IAggregateAgent, IAggregateHandler} from './agent-types';
+import {IAggregateAgent, IStatefulHandler} from './agent-types';
 import {IDispatchedMessage, IVersionedMessage} from './message-types';
 
 /**
@@ -38,7 +38,7 @@ export interface IRepository {
   /**
    * Restores the state of an aggregate from the persistence layer.
    */
-  load<Aggregate extends IAggregateAgent<State, Handler>, State, Handler extends IAggregateHandler<State>>(aggregate: Aggregate, handler: Handler, id: Uuid): Promise<Readonly<IAggregateSnapshot<State>>>;
+  load<Aggregate extends IAggregateAgent<State, Handler>, State, Handler extends IStatefulHandler<State>>(aggregate: Aggregate, handler: Handler, id: Uuid): Promise<Readonly<IAggregateSnapshot<State>>>;
 
   /**
    * Persists events that were produced using the given snapshot.

@@ -39,7 +39,7 @@ export interface IAgentModelsCompilerOptions extends ITypesCompilerOptions<unkno
   /**
    * The interface that describes the message handlers of the agent. This interface should be manually implemented and
    * is intended to contain application business logic. If agent is stateful then this interface extends
-   * {@link IAggregateHandler}.
+   * {@link IStatefulHandler}.
    */
   renameAgentHandlerInterface?(agentModel: IAgentModel): string;
 
@@ -277,7 +277,7 @@ function compileAgentModel(filePath: string, agentModels: Record<string, IAgentM
   // region Agent handler
   src += 'export interface ' + agentHandlerTypeName;
 
-  src += stateful ? ` extends IAggregateHandler<${agentStateTypeName}>{` : '{';
+  src += stateful ? ` extends IStatefulHandler<${agentStateTypeName}>{` : '{';
 
   // Handle adopted events
   if (agentAdoptedEvents) {
