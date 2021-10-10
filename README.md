@@ -1,6 +1,6 @@
-# event-sorcerer
+# EventSorcerer ✨🧙🏿‍♂️
 
-EventSorcerer is an event type definition compiler and runtime for event driven systems.
+An event type definition compiler and runtime for event driven systems.
 
 ## Messages
 
