@@ -8,6 +8,8 @@ export interface IMessage {
   payload: unknown;
 }
 
+export type Payload<Message extends IMessage> = Readonly<Message['payload']>;
+
 /**
  * A message that was dispatched through a messaging system.
  */
@@ -45,3 +47,8 @@ export interface IVersionedMessage extends IDispatchedMessage {
    */
   version: bigint;
 }
+
+/**
+ * The factory that produces messages with given type.
+ */
+export type MessageFactory<Message extends IMessage> = (payload: Message['payload']) => Message;

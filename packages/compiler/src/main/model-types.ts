@@ -19,8 +19,9 @@ export interface IAgentModel {
   commands?: Array<IMessageModel>;
   events?: Array<IMessageModel>;
   alerts?: Array<IMessageModel>;
-  adoptedEvents?: Array<IMessageRefModel>;
   adoptedCommands?: Array<IMessageRefModel>;
+  adoptedEvents?: Array<IMessageRefModel>;
+  adoptedAlerts?: Array<IMessageRefModel>;
 }
 
 /**

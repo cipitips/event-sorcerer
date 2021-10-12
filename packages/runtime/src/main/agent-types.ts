@@ -1,5 +1,6 @@
 import {Awaitable, Maybe, ReadonlyMany, Uuid} from './utility-types';
 import {IMessage} from './message-types';
+import {IStatefulHandler} from './handler-types';
 
 /**
  * An agent is a message processing unit that communicates with other agents via messages.
@@ -8,7 +9,8 @@ export type Agent =
     | IAggregateAgent
     | IProcessManagerAgent
     | IEventListenerAgent
-    | IServiceAgent;
+    | IServiceAgent
+    | IMonitorAgent;
 
 /**
  * Type of an agent.
@@ -35,19 +37,6 @@ export interface IAgent {
    * The system-wide unique name of an agent that can be used by persistence or service discovery.
    */
   readonly name: string;
-}
-
-/**
- * A handler that is aware of the initial agent state.
- *
- * @template State The aggregate state.
- */
-export interface IStatefulHandler<State = unknown> {
-
-  /**
-   * Creates the initial state of the aggregate.
-   */
-  createInitialState(): State;
 }
 
 /**
