@@ -1,6 +1,7 @@
 import {Many, Uuid} from './utility-types';
-import {IAggregateAgent, IStatefulHandler} from './agent-types';
+import {IAggregatingAgent} from './agent-types';
 import {IDispatchedMessage, IVersionedMessage} from './message-types';
+import {IStatefulHandler} from './handler-types';
 
 /**
  * A snapshot of the aggregate state that was loaded from the repository.
@@ -33,40 +34,49 @@ export interface IRepository {
   /**
    * Returns `true` if an aggregate with the given ID was saved in the past.
    */
-  exists(aggregate: IAggregateAgent, id: Uuid): Promise<boolean>;
+  exists(agent: IAggregatingAgent, id: Uuid): Promise<boolean>;
 
   /**
    * Restores the state of an aggregate from the persistence layer.
    */
-  load<Aggregate extends IAggregateAgent<State, Handler>, State, Handler extends IStatefulHandler<State>>(aggregate: Aggregate, handler: Handler, id: Uuid): Promise<Readonly<IAggregateSnapshot<State>>>;
+  load<Agent extends IAggregatingAgent<State, Handler>, State, Handler extends IStatefulHandler<State>>(agent: Agent, handler: Handler, id: Uuid): Promise<Readonly<IAggregateSnapshot<State>>>;
 
   /**
    * Persists events that were produced using the given snapshot.
    *
-   * @param aggregate The aggregate for which events were dispatched.
+   * @param agent The aggregate for which events were dispatched.
    * @param snapshot The state from which events were derived.
    * @param events The events that were dispatched.
    */
-  save<Aggregate extends IAggregateAgent<State>, State>(aggregate: Aggregate, snapshot: Readonly<IAggregateSnapshot<State>>, events: Array<IVersionedMessage>): Promise<void>;
+  save<Agent extends IAggregatingAgent<State>, State>(agent: Agent, snapshot: Readonly<IAggregateSnapshot<State>>, events: Array<IVersionedMessage>): Promise<void>;
 }
 
 /**
- * An abstraction from the database.
+ * An abstraction of an event-stream database.
  */
 export interface IEventStore {
 
   /**
    * Returns `true` if an aggregate with the given ID has at least one event.
+   *
+   * @param name The name of the aggregate.
+   * @param id The ID of the aggregate.
    */
   exists(name: string, id: Uuid): Promise<boolean>;
 
   /**
    * Returns the latest available snapshot for the given aggregate or `undefined` if there's no snapshot available.
+   *
+   * @param name The name of the aggregate.
+   * @param id The ID of the aggregate.
    */
-  loadSnapshot(name: string, id: string): Promise<IAggregateSnapshot | undefined>;
+  loadSnapshot(name: string, id: Uuid): Promise<IAggregateSnapshot | undefined>;
 
   /**
    * Saves a snapshot.
+   *
+   * @param name The name of the aggregate.
+   * @param snapshot The snapshot to save.
    *
    * @throws OptimisticLockError If saving an aggregate failed because of the optimistic locking.
    */
@@ -74,21 +84,30 @@ export interface IEventStore {
 
   /**
    * Removes the snapshot for the aggregate if it is available.
+   *
+   * @param name The name of the aggregate.
+   * @param id The ID of the aggregate.
+   * @param version The snapshot version to drop.
    */
-  dropSnapshot(name: string, id: string, version: bigint): Promise<void>;
+  dropSnapshot(name: string, id: Uuid, version: bigint): Promise<void>;
 
   /**
    * Returns an iterator that yields events that were persisted for an aggregate with the given ID.
    *
    * @param name The name of the aggregate to load. Store may use different tables or even databases to store
-   *     aggregates and `aggregateName` can be the storage lookup key.
+   *     aggregates and `name` can be the storage lookup key.
    * @param id The ID of the aggregate for which events must be loaded.
-   * @param baseVersion The aggregate version after which (exclusive) events should be loaded.
+   * @param baseVersion The aggregate version after which (exclusive) events should be loaded. If omitted then all
+   *     events are loaded.
    */
   loadEvents(name: string, id: Uuid, baseVersion?: bigint): AsyncIterable<IVersionedMessage>;
 
   /**
    * Persists events for the aggregate in the event store.
+   *
+   * @param name The name of the aggregate.
+   * @param snapshot The snapshot to save.
+   * @param events The list of events to save.
    *
    * @throws OptimisticLockError If saving an aggregate failed because of the optimistic locking.
    */

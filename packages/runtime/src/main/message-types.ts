@@ -51,4 +51,4 @@ export interface IVersionedMessage extends IDispatchedMessage {
 /**
  * The factory that produces messages with given type.
  */
-export type MessageFactory<Message extends IMessage> = (payload: Message['payload']) => Message;
+export type MessageFactory<Message extends IMessage> = (payload: Payload<Message>) => Message;

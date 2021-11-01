@@ -40,18 +40,10 @@ export interface IAgent {
 }
 
 /**
- * A stateful projection of events that can be altered with commands.
- *
- * @template State The aggregate state.
- * @template Handler The handler that knows how to handle commands and apply events.
- * @template Command Commands that aggregate can handle.
- * @template Event Events that can be applied to the state of the aggregate.
- * @template Alert Alerts that aggregate can dispatch.
+ * The agent which state is rehydrated from an event stream.
  */
-export interface IAggregateAgent<State = unknown, Handler extends IStatefulHandler<State> = IStatefulHandler<State>, Command extends IMessage = IMessage, Event extends IMessage = IMessage, Alert extends IMessage = IMessage>
+export interface IAggregatingAgent<State = unknown, Handler extends IStatefulHandler<State> = IStatefulHandler<State>, Command extends IMessage = IMessage, Event extends IMessage = IMessage, Alert extends IMessage = IMessage>
     extends IAgent {
-
-  type: AgentType.AGGREGATE;
 
   /**
    * Checks that the message is the command that can be handled by this aggregate.
@@ -99,6 +91,21 @@ export interface IAggregateAgent<State = unknown, Handler extends IStatefulHandl
 }
 
 /**
+ * A stateful projection of events that can be altered with commands.
+ *
+ * @template State The aggregate state.
+ * @template Handler The handler that knows how to handle commands and apply events.
+ * @template Command Commands that aggregate can handle.
+ * @template Event Events that can be applied to the state of the aggregate.
+ * @template Alert Alerts that aggregate can dispatch.
+ */
+export interface IAggregateAgent<State = unknown, Handler extends IStatefulHandler<State> = IStatefulHandler<State>, Command extends IMessage = IMessage, Event extends IMessage = IMessage, Alert extends IMessage = IMessage>
+    extends IAggregatingAgent<State, Handler, Command, Event, Alert> {
+
+  type: AgentType.AGGREGATE;
+}
+
+/**
  * A stateful process manager that receives adopted events and produces commands.
  *
  * @template State The process manager state.
@@ -110,7 +117,7 @@ export interface IAggregateAgent<State = unknown, Handler extends IStatefulHandl
  * @template AdoptedEvent Events adopted from other handlers that this process manager can dispatch.
  */
 export interface IProcessManagerAgent<State = unknown, Handler extends IStatefulHandler<State> = IStatefulHandler<State>, Command extends IMessage = IMessage, Event extends IMessage = IMessage, Alert extends IMessage = IMessage, AdoptedCommand extends IMessage = IMessage, AdoptedEvent extends IMessage = IMessage>
-    extends Omit<IAggregateAgent<State, Handler, Command, Event, Alert>, 'type'> {
+    extends IAggregatingAgent<State, Handler, Command, Event, Alert> {
 
   type: AgentType.PROCESS_MANAGER;
 

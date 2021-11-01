@@ -3,13 +3,16 @@
  */
 export class OptimisticLockError extends Error {
 
-  /**
-   * The name of the agent that couldn't be persisted.
-   */
-  public agentName = '<unknown>';
+  public aggregateName;
 
-  constructor() {
+  /**
+   * Creates a new {@link OptimisticLockError} instance.
+   *
+   * @param aggregateName The name of the aggregate that couldn't be persisted.
+   */
+  constructor(aggregateName: string) {
     super();
     this.name = 'OptimisticLockError';
+    this.aggregateName = aggregateName;
   }
 }
