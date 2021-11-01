@@ -2,7 +2,7 @@ import {IAgentModel, IMessageModel, IMessageRefModel} from './model-types';
 import {camelCase, constantCase, pascalCase} from 'change-case-all';
 import {AgentType} from '@event-sorcerer/runtime';
 import {compileDocComment, compilePropertyAccessor} from '@smikhalevski/codegen';
-import {die} from './misc';
+import {createMap, die} from './misc';
 import * as JsonPointer from 'json-pointer';
 import {
   compileTypes,
@@ -15,7 +15,7 @@ import {
   typesCompilerOptions,
   validatorDialectConfig,
 } from '@jtdc/compiler';
-import {IJtdDict, IJtdUnionNode, IValidatorDialectConfig, JtdNode, JtdNodeType} from '@jtdc/types';
+import {IJtdDict, IJtdNodeDict, IJtdUnionNode, IValidatorDialectConfig, JtdNode, JtdNodeType} from '@jtdc/types';
 import {validatorDialectFactory} from '@jtdc/jtd-dialect';
 
 export const enum MessageKind {
@@ -261,66 +261,6 @@ export function compileAgentModel(agentModel: IAgentModel, messageRefResolver: M
 
 
 
-  src += `export const User={`;
-
-  // Message factories
-  for (const [messageKind, messageModels] of messageModelMap) {
-    if (messageModels) {
-      for (const messageModel of messageModels) {
-        src += compileDocComment(messageModel.description)
-            + renameMessageFactoryMethod(messageModel, agentModel, messageKind)
-            + ':createMessageFactory<'
-            + compileMessageInterfaceName(messageModel, agentModel, messageKind)
-            + '>('
-            + compileMessageTypeValue(messageModel, agentModel, messageKind)
-            + '),';
-      }
-    }
-  }
-
-  src += '} as const;';
-
-
-  // region Messages namespace
-  src += `export namespace ${agentNamespaceName}{`;
-
-  // Message interfaces
-  for (const [messageKind, messageModels] of messageModelMap) {
-    if (messageModels) {
-      src += compileMessageInterfaces(agentModel, messageModels, messageKind, typeRefResolver, resolvedOptions);
-    }
-  }
-
-  // Message validators
-  const ddd: any = {};
-  for (const [messageKind, messageModels] of messageModelMap) {
-    if (messageModels) {
-      for (const mm of messageModels) {
-        ddd[mm.type] = parseJtd(mm.payload);
-      }
-    }
-  }
-  src += compileValidators(ddd, validatorDialectFactory(resolvedOptions), resolvedOptions)
-
-  // Adopted message type aliases
-  for (const [messageKind, refs] of messageRefModelMap) {
-    if (refs) {
-      for (const ref of refs) {
-        src += 'export type '
-            + renameAdoptedMessageTypeAlias(agentModel, messageKind)
-            + '='
-            + mapConcat(refs, (ref) => {
-              const [relatedAgentModel, relatedMessageModel] = messageRefResolver(ref, messageKind);
-              return '|' + renameMessageInterface(relatedMessageModel, relatedAgentModel, messageKind);
-            })
-            + ';';
-      }
-    }
-  }
-
-  src += '}';
-  // endregion
-
 
   // region Message type sets
 
@@ -484,32 +424,65 @@ export function compileAgentModel(agentModel: IAgentModel, messageRefResolver: M
 }
 
 
+export function compileMessageModels(agentModel: IAgentModel, messageRefResolver: MessageRefResolver, typeRefResolver: TypeRefResolver<unknown>, options: IAgentModelsCompilerOptions): string {
 
-// export function compileMessageModels(agentModel: IAgentModel, messageRefResolver: MessageRefResolver, typeRefResolver: TypeRefResolver<unknown>, options: IAgentModelsCompilerOptions): string {
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-// }
-//
-//
+  let src = '';
 
+  // Message factories
+  for (const [messageKind, messageModels] of messageModelMap) {
+    if (messageModels) {
+      for (const messageModel of messageModels) {
+        src += compileDocComment(messageModel.description)
+            + 'export const '
+            + renameMessageFactoryMethod(messageModel, agentModel, messageKind)
+            + ':createMessageFactory<'
+            + compileMessageInterfaceName(messageModel, agentModel, messageKind)
+            + '>('
+            + compileMessageTypeValue(messageModel, agentModel, messageKind)
+            + '),';
+      }
+    }
+  }
 
+  // Message interfaces
+  for (const [messageKind, messageModels] of messageModelMap) {
+    if (messageModels) {
+      src += compileMessageInterfaces(agentModel, messageModels, messageKind, typeRefResolver, resolvedOptions);
+    }
+  }
 
+  // Message validators
+  src += compileValidators(createMessageDefinitions(messageModels), validatorDialectFactory(resolvedOptions), resolvedOptions);
 
+  // Adopted message type aliases
+  for (const [messageKind, refs] of messageRefModelMap) {
+    if (refs) {
+      for (const ref of refs) {
+        src += 'export type '
+            + renameAdoptedMessageTypeAlias(agentModel, messageKind)
+            + '='
+            + mapConcat(refs, (ref) => {
+              const [relatedAgentModel, relatedMessageModel] = messageRefResolver(ref, messageKind);
+              return '|' + renameMessageInterface(relatedMessageModel, relatedAgentModel, messageKind);
+            })
+            + ';';
+      }
+    }
+  }
 
+  return src;
+}
 
+function createMessageDefinitions(messageModels: Array<IMessageModel>): IJtdNodeDict<unknown> {
+  return messageModels.reduce((definitions, messageModel) => Object.assign(definitions, {
+    [messageModel.type]: parseJtd(messageModel.payload),
+  }), {});
+}
 
 function createMessagesUnionNode(messageModels: Array<IMessageModel>): IJtdUnionNode<unknown> {
   const node = parseJtd({
     discriminator: 'type',
-    mapping: messageModels.reduce<IJtdDict<unknown>>((mapping, messageModel) => Object.assign(mapping, {
+    mapping: messageModels.reduce((mapping, messageModel) => Object.assign(mapping, {
       [messageModel.type]: {
         properties: {
           payload: messageModel.payload,
@@ -517,7 +490,7 @@ function createMessagesUnionNode(messageModels: Array<IMessageModel>): IJtdUnion
       },
     }), {}),
   });
-  return node.nodeType === JtdNodeType.UNION ? node : die('Unexpected state');
+  return node.nodeType === JtdNodeType.UNION ? node : die('Unexpected node type');
 }
 
 function compileMessageInterfaces(agentModel: IAgentModel, messageModels: Array<IMessageModel>, messageKind: MessageKind, typeRefResolver: TypeRefResolver<unknown>, options: Required<IAgentModelsCompilerOptions>): string {
