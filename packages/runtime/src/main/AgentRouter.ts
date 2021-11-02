@@ -1,7 +1,7 @@
 import {Agent, AgentType} from './agent-types';
-import {IDispatchedMessage, IMessage} from './message-types';
+import {IIdentifiableMessage, IMessage} from './message-types';
 import {IRepository} from './store-types';
-import {deriveCommand, deriveVersionedEvent} from './message-utils';
+import {deriveCommand, deriveEvent, deriveAggregateEvent} from './message-utils';
 import {Arrays} from '@smikhalevski/stdlib';
 import {IStatefulHandler} from './handler-types';
 import {ReadonlyMany} from './utility-types';
@@ -25,7 +25,7 @@ export class AgentRouter {
   /**
    * Routes an event to agents that support it and dispatches the returned commands.
    */
-  public async handleEvent(event: IDispatchedMessage): Promise<void> {
+  public async handleEvent(event: IIdentifiableMessage): Promise<void> {
     const commands: Array<IMessage> = [];
 
     for (const [agent, handler] of this.agentHandlers) {
@@ -36,8 +36,8 @@ export class AgentRouter {
       }
 
       if (agent.type === AgentType.PROCESS_MANAGER && agent.isAdoptedEvent(event)) {
-        const snapshot = await this.repository.load(agent, handler as IStatefulHandler, agent.getAggregateId(event));
-        agentCommands = await agent.handleAdoptedEvent(handler as IStatefulHandler, event, snapshot.state);
+        const snapshot = await this.repository.load(agent, handler, agent.getAggregateId(event));
+        agentCommands = await agent.handleAdoptedEvent(handler, event, snapshot.state);
       }
 
       if (agentCommands) {
@@ -48,32 +48,29 @@ export class AgentRouter {
     commands.map((command, index) => deriveCommand(event, command, index));
   }
 
-  public async handleCommand(command: IDispatchedMessage): Promise<void> {
+  public async handleCommand(command: IIdentifiableMessage): Promise<void> {
 
-    let events: readonly IMessage[];
+    let events: readonly IMessage[] | undefined;
 
     for (const [agent, handler] of this.agentHandlers) {
 
       const agentType = agent.type;
 
       if (agentType === AgentType.SERVICE && agent.isSupportedCommand(command)) {
-        events = Arrays.fromMany(await agent.handleCommand(handler, command)).map((event));
+        events = Arrays.fromMany(await agent.handleCommand(handler, command)).map((event, index) => deriveEvent(command, event, index));
         break;
       }
 
       if ((agentType === AgentType.PROCESS_MANAGER || agentType === AgentType.AGGREGATE) && agent.isSupportedCommand(command)) {
         const snapshot = await this.repository.load(agent, handler, agent.getAggregateId(command));
-        events = await agent.handleCommand(handler, command, snapshot.state);
+        events = Arrays.fromMany(await agent.handleCommand(handler, command, snapshot.state)).map((event, index) => deriveAggregateEvent(command, event, snapshot.version, index));
         break;
       }
     }
 
-    if (!events) {
-      return;
+    if (events?.length) {
+      // dispatch
     }
-
-    Arrays.fromMany(events).map((event, index) => deriveVersionedEvent(command, event, snapshot.version, index));
-
   }
 
 }

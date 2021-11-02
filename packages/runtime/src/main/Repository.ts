@@ -1,5 +1,5 @@
 import {IAggregateSnapshot, IEventStore, IRepository} from './store-types';
-import {IAggregatingAgent} from './agent-types';
+import {IAggregatableAgent} from './agent-types';
 import {Uuid} from './utility-types';
 import {IStatefulHandler} from './handler-types';
 import {IVersionedMessage} from './message-types';
@@ -18,32 +18,30 @@ export class Repository implements IRepository {
     this.eventStore = eventStore;
   }
 
-  public exists(agent: IAggregatingAgent, id: Uuid): Promise<boolean> {
+  public exists(agent: IAggregatableAgent, id: Uuid): Promise<boolean> {
     return this.eventStore.exists(agent.name, id);
   }
 
-  public async load<Agent extends IAggregatingAgent<State, Handler>, State, Handler extends IStatefulHandler<State>>(agent: Agent, handler: Handler, id: Uuid): Promise<Readonly<IAggregateSnapshot<State>>> {
+  public async load<Agent extends IAggregatableAgent<State, Handler>, State, Handler extends IStatefulHandler<State>>(agent: Agent, handler: Handler, id: Uuid): Promise<Readonly<IAggregateSnapshot<State>>> {
     const latestSnapshot = await this.eventStore.loadSnapshot(agent.name, id);
 
-    const state = latestSnapshot?.state as State || handler.createInitialState();
-
-    const snapshot: IAggregateSnapshot<State> = {
+    const snapshot: IAggregateSnapshot<State> = latestSnapshot || {
       id,
-      version: latestSnapshot?.version || 0n,
-      state,
+      version: 0n,
+      state: handler.createInitialState(),
     };
 
     const eventStream = this.eventStore.loadEvents(agent.name, id, latestSnapshot?.version);
 
     for await (const event of eventStream) {
-      agent.applyEvent(handler, event, state);
+      agent.applyEvent(handler, event, snapshot.state);
       snapshot.version = event.version;
     }
 
     return snapshot;
   }
 
-  public save<Agent extends IAggregatingAgent<State>, State>(agent: Agent, snapshot: Readonly<IAggregateSnapshot<State>>, events: Array<IVersionedMessage>): Promise<void> {
+  public save<Agent extends IAggregatableAgent<State>, State>(agent: Agent, snapshot: Readonly<IAggregateSnapshot<State>>, events: Array<IVersionedMessage>): Promise<void> {
     return this.eventStore.saveEvents(agent.name, snapshot, events);
   }
 }

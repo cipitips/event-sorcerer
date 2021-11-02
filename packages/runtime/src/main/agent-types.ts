@@ -31,18 +31,18 @@ export interface IAgent {
   /**
    * The type of an agent.
    */
-  readonly type: AgentType;
+  type: AgentType;
 
   /**
    * The system-wide unique name of an agent that can be used by persistence or service discovery.
    */
-  readonly name: string;
+  name: string;
 }
 
 /**
  * The agent which state is rehydrated from an event stream.
  */
-export interface IAggregatingAgent<State = unknown, Handler extends IStatefulHandler<State> = IStatefulHandler<State>, Command extends IMessage = IMessage, Event extends IMessage = IMessage, Alert extends IMessage = IMessage>
+export interface IAggregatableAgent<State = unknown, Handler extends IStatefulHandler<State> = IStatefulHandler<State>, Command extends IMessage = IMessage, Event extends IMessage = IMessage, Alert extends IMessage = IMessage>
     extends IAgent {
 
   /**
@@ -100,7 +100,7 @@ export interface IAggregatingAgent<State = unknown, Handler extends IStatefulHan
  * @template Alert Alerts that aggregate can dispatch.
  */
 export interface IAggregateAgent<State = unknown, Handler extends IStatefulHandler<State> = IStatefulHandler<State>, Command extends IMessage = IMessage, Event extends IMessage = IMessage, Alert extends IMessage = IMessage>
-    extends IAggregatingAgent<State, Handler, Command, Event, Alert> {
+    extends IAggregatableAgent<State, Handler, Command, Event, Alert> {
 
   type: AgentType.AGGREGATE;
 }
@@ -117,7 +117,7 @@ export interface IAggregateAgent<State = unknown, Handler extends IStatefulHandl
  * @template AdoptedEvent Events adopted from other handlers that this process manager can dispatch.
  */
 export interface IProcessManagerAgent<State = unknown, Handler extends IStatefulHandler<State> = IStatefulHandler<State>, Command extends IMessage = IMessage, Event extends IMessage = IMessage, Alert extends IMessage = IMessage, AdoptedCommand extends IMessage = IMessage, AdoptedEvent extends IMessage = IMessage>
-    extends IAggregatingAgent<State, Handler, Command, Event, Alert> {
+    extends IAggregatableAgent<State, Handler, Command, Event, Alert> {
 
   type: AgentType.PROCESS_MANAGER;
 

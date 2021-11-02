@@ -4,16 +4,22 @@ import {Uuid} from './utility-types';
  * A message passed between agents.
  */
 export interface IMessage {
+
+  /**
+   * The type of the message is the system-wide unique string.
+   */
   type: string;
+
+  /**
+   * The message payload.
+   */
   payload: unknown;
 }
 
-export type Payload<Message extends IMessage> = Readonly<Message['payload']>;
-
 /**
- * A message that was dispatched through a messaging system.
+ * A message that has an ID.
  */
-export interface IDispatchedMessage extends IMessage {
+export interface IIdentifiableMessage extends IMessage {
 
   /**
    * The unique message ID.
@@ -37,18 +43,12 @@ export interface IDispatchedMessage extends IMessage {
 }
 
 /**
- * A message that is aware of the optimistic concurrency.
+ * A message with and ID and a version (for optimistic concurrency).
  */
-export interface IVersionedMessage extends IDispatchedMessage {
+export interface IVersionedMessage extends IIdentifiableMessage {
 
   /**
-   * The monotonically ascending index of the message in scope of an event stream. Versioning allows solving optimistic
-   * concurrency issues when updating aggregates.
+   * The monotonically ascending index of the message in scope of an event stream.
    */
   version: bigint;
 }
-
-/**
- * The factory that produces messages with given type.
- */
-export type MessageFactory<Message extends IMessage> = (payload: Payload<Message>) => Message;

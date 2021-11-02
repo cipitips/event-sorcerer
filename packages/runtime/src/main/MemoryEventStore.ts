@@ -22,7 +22,7 @@ export class MemoryEventStore implements IEventStore {
     return this.eventStreams.get(name)?.get(id) != null || this.snapshots.get(name)?.get(id) != null;
   }
 
-  public async loadSnapshot(name: string, id: string): Promise<IAggregateSnapshot | undefined> {
+  public async loadSnapshot(name: string, id: string): Promise<IAggregateSnapshot<any> | undefined> {
     return this.snapshots.get(name)?.get(id);
   }
 

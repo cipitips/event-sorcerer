@@ -1,6 +1,6 @@
-import {Many, Uuid} from './utility-types';
-import {IAggregatingAgent} from './agent-types';
-import {IDispatchedMessage, IVersionedMessage} from './message-types';
+import {Uuid} from './utility-types';
+import {IAggregatableAgent} from './agent-types';
+import {IVersionedMessage} from './message-types';
 import {IStatefulHandler} from './handler-types';
 
 /**
@@ -23,7 +23,7 @@ export interface IAggregateSnapshot<State = unknown> {
   /**
    * The state of an aggregate.
    */
-  state: Readonly<State>;
+  state: State;
 }
 
 /**
@@ -34,12 +34,17 @@ export interface IRepository {
   /**
    * Returns `true` if an aggregate with the given ID was saved in the past.
    */
-  exists(agent: IAggregatingAgent, id: Uuid): Promise<boolean>;
+  exists(agent: IAggregatableAgent, id: Uuid): Promise<boolean>;
 
   /**
    * Restores the state of an aggregate from the persistence layer.
+   *
+   * @param agent The aggregate for which the snapshot is loaded.
+   * @param handler The event handler.
+   * @param id The ID of the aggregate to load.
+   * @returns The snapshot of the aggregate.
    */
-  load<Agent extends IAggregatingAgent<State, Handler>, State, Handler extends IStatefulHandler<State>>(agent: Agent, handler: Handler, id: Uuid): Promise<Readonly<IAggregateSnapshot<State>>>;
+  load<Agent extends IAggregatableAgent<State, Handler>, State, Handler extends IStatefulHandler<State>>(agent: Agent, handler: Handler, id: Uuid): Promise<Readonly<IAggregateSnapshot<State>>>;
 
   /**
    * Persists events that were produced using the given snapshot.
@@ -48,7 +53,7 @@ export interface IRepository {
    * @param snapshot The state from which events were derived.
    * @param events The events that were dispatched.
    */
-  save<Agent extends IAggregatingAgent<State>, State>(agent: Agent, snapshot: Readonly<IAggregateSnapshot<State>>, events: Array<IVersionedMessage>): Promise<void>;
+  save<Agent extends IAggregatableAgent<State>, State>(agent: Agent, snapshot: Readonly<IAggregateSnapshot<State>>, events: Array<IVersionedMessage>): Promise<void>;
 }
 
 /**
@@ -70,7 +75,7 @@ export interface IEventStore {
    * @param name The name of the aggregate.
    * @param id The ID of the aggregate.
    */
-  loadSnapshot(name: string, id: Uuid): Promise<IAggregateSnapshot | undefined>;
+  loadSnapshot(name: string, id: Uuid): Promise<IAggregateSnapshot<any> | undefined>;
 
   /**
    * Saves a snapshot.
@@ -112,15 +117,4 @@ export interface IEventStore {
    * @throws OptimisticLockError If saving an aggregate failed because of the optimistic locking.
    */
   saveEvents(name: string, snapshot: IAggregateSnapshot, events: Array<IVersionedMessage>): Promise<void>;
-}
-
-/**
- * A message broker abstraction.
- */
-export interface IMessageDispatcher {
-
-  /**
-   * Dispatches messages through the message broker.
-   */
-  dispatch(messages: Many<IDispatchedMessage>): Promise<void>;
 }

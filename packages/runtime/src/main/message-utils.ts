@@ -1,5 +1,5 @@
 import {v4 as uuid4, v5 as uuid5} from 'uuid';
-import {IDispatchedMessage, IMessage, IVersionedMessage} from './message-types';
+import {IVersionedMessage, IIdentifiableMessage, IMessage} from './message-types';
 import {Uuid} from './utility-types';
 
 /**
@@ -10,7 +10,7 @@ import {Uuid} from './utility-types';
  * @param requestId The optional request ID used as a command correlation ID.
  * @returns The command message.
  */
-export function originateCommand(command: IMessage, requestId: Uuid = uuid4()): IDispatchedMessage {
+export function originateCommand(command: IMessage, requestId: Uuid = uuid4()): IIdentifiableMessage {
   return {
     type: command.type,
     id: requestId,
@@ -29,7 +29,7 @@ export function originateCommand(command: IMessage, requestId: Uuid = uuid4()): 
  * @param index The index of the command. This is required to distinguish multiple commands derived from a single event.
  * @returns The command message.
  */
-export function deriveCommand(event: IDispatchedMessage, command: IMessage, index: number): IDispatchedMessage {
+export function deriveCommand(event: IIdentifiableMessage, command: IMessage, index: number): IIdentifiableMessage {
   return {
     id: uuid5(index.toString(), event.id),
     type: command.type,
@@ -48,7 +48,7 @@ export function deriveCommand(event: IDispatchedMessage, command: IMessage, inde
  * @param index The index of the event. This is required to distinguish multiple events derived from a single command.
  * @returns The event message.
  */
-export function deriveEvent(command: IDispatchedMessage, event: IMessage, index: number): IDispatchedMessage {
+export function deriveEvent(command: IIdentifiableMessage, event: IMessage, index: number): IIdentifiableMessage {
   return {
     id: uuid5(index.toString(), command.id),
     type: event.type,
@@ -68,7 +68,7 @@ export function deriveEvent(command: IDispatchedMessage, event: IMessage, index:
  * @param index The index of the event. This is required to distinguish multiple events derived from a single command.
  * @returns The versioned event message.
  */
-export function deriveVersionedEvent(command: IDispatchedMessage, event: IMessage, baseVersion: bigint, index: number): IVersionedMessage {
+export function deriveAggregateEvent(command: IIdentifiableMessage, event: IMessage, baseVersion: bigint, index: number): IVersionedMessage {
   return {
     ...deriveEvent(command, event, index),
     version: baseVersion + BigInt(index),
