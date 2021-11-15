@@ -68,7 +68,7 @@ export function deriveEvent(command: IIdentifiableMessage, event: IMessage, inde
  * @param index The index of the event. This is required to distinguish multiple events derived from a single command.
  * @returns The versioned event message.
  */
-export function deriveAggregateEvent(command: IIdentifiableMessage, event: IMessage, baseVersion: bigint, index: number): IVersionedMessage {
+export function deriveVersionedEvent(command: IIdentifiableMessage, event: IMessage, baseVersion: bigint, index: number): IVersionedMessage {
   return {
     ...deriveEvent(command, event, index),
     version: baseVersion + BigInt(index),

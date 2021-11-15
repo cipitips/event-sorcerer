@@ -1,24 +1,25 @@
-import {Agent, AgentType} from './agent-types';
 import {IIdentifiableMessage, IMessage} from './message-types';
 import {IRepository} from './store-types';
-import {deriveCommand, deriveEvent, deriveAggregateEvent} from './message-utils';
+import {deriveCommand, deriveEvent, deriveVersionedEvent} from './message-utils';
 import {Arrays} from '@smikhalevski/stdlib';
-import {IStatefulHandler} from './handler-types';
-import {ReadonlyMany} from './utility-types';
+import {IAgent} from './agent-types';
+import {IEnvelope} from './envelope-types';
 
 /**
  * Routes a message to an agent that can handle it.
  */
 export class AgentRouter {
 
-  protected agentHandlers = new Map<Agent, any>();
+  protected agentHandlers = new Map<IAgent, any>();
   protected repository;
+  protected dispatcher;
 
-  constructor(repository: IRepository) {
+  constructor(repository: IRepository, dispatcher: (envelope: Array<IEnvelope<IMessage>>) => void) {
     this.repository = repository;
+    this.dispatcher = dispatcher;
   }
 
-  public registerAgentHandler(agent: Agent, handler: unknown): void {
+  public registerAgentHandler(agent: IAgent, handler: unknown): void {
     this.agentHandlers.set(agent, handler);
   }
 
@@ -29,19 +30,14 @@ export class AgentRouter {
     const commands: Array<IMessage> = [];
 
     for (const [agent, handler] of this.agentHandlers) {
-      let agentCommands;
-
-      if (agent.type === AgentType.EVENT_LISTENER && agent.isAdoptedEvent(event)) {
-        agentCommands = await agent.handleAdoptedEvent(handler, event);
+      if (!agent.adoptedEventMap?.has(event.type)) {
+        continue;
       }
+      const snapshot = agent.getAggregateId ? await this.repository.load(agent, handler, agent.getAggregateId(event)) : undefined;
 
-      if (agent.type === AgentType.PROCESS_MANAGER && agent.isAdoptedEvent(event)) {
-        const snapshot = await this.repository.load(agent, handler, agent.getAggregateId(event));
-        agentCommands = await agent.handleAdoptedEvent(handler, event, snapshot.state);
-      }
-
-      if (agentCommands) {
-        commands.push(...Arrays.fromMany(agentCommands));
+      const c = await agent.handleAdoptedEvent?.(handler, event, snapshot?.state);
+      if (c) {
+        commands.push(...Arrays.fromMany(c));
       }
     }
 
@@ -53,18 +49,14 @@ export class AgentRouter {
     let events: readonly IMessage[] | undefined;
 
     for (const [agent, handler] of this.agentHandlers) {
-
-      const agentType = agent.type;
-
-      if (agentType === AgentType.SERVICE && agent.isSupportedCommand(command)) {
-        events = Arrays.fromMany(await agent.handleCommand(handler, command)).map((event, index) => deriveEvent(command, event, index));
-        break;
+      if (!agent.commandTypes?.has(command.type)) {
+        continue;
       }
+      const snapshot = agent.getAggregateId ? await this.repository.load(agent, handler, agent.getAggregateId(command)) : undefined;
 
-      if ((agentType === AgentType.PROCESS_MANAGER || agentType === AgentType.AGGREGATE) && agent.isSupportedCommand(command)) {
-        const snapshot = await this.repository.load(agent, handler, agent.getAggregateId(command));
-        events = Arrays.fromMany(await agent.handleCommand(handler, command, snapshot.state)).map((event, index) => deriveAggregateEvent(command, event, snapshot.version, index));
-        break;
+      const e = await agent.handleCommand?.(handler, command, snapshot?.state);
+      if (e) {
+        events = agent.getAggregateId ? Arrays.fromMany(e).map((event, index) => deriveVersionedEvent(command, event, snapshot?.version || 0n, index)) : Arrays.fromMany(e).map((event, index) => deriveEvent(command, event, index));
       }
     }
 

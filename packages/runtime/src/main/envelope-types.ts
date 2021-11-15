@@ -1,5 +1,5 @@
-import {Agent} from './agent-types';
 import {IMessage} from './message-types';
+import {IAgent} from './agent-types';
 
 export const enum MessageKind {
   COMMAND = 'command',
@@ -15,7 +15,7 @@ export interface IEnvelope<Message extends IMessage> {
   /**
    * The agent that declared a message.
    */
-  agent: Agent;
+  agent: IAgent;
 
   /**
    * The kind of a message.

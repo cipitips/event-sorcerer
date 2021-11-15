@@ -1,5 +1,5 @@
 import {MemoryEventStore} from '../main/MemoryEventStore';
-import {IAggregateSnapshot, IVersionedMessage, OptimisticLockError} from '../main';
+import {ISnapshot, IVersionedMessage, OptimisticLockError} from '../main';
 
 async function collect<T>(iterable: AsyncIterable<T>): Promise<Array<T>> {
   const arr: Array<T> = [];
@@ -94,7 +94,7 @@ describe('MemoryEventStore', () => {
   test('loads previously saved snapshot', async () => {
     await eventStore.saveSnapshot('abc', {id: '123', version: 1n, state: {bar: 'qux'}});
 
-    const snapshot: IAggregateSnapshot = {id: '123', version: 1n, state: {bar: 'qux'}};
+    const snapshot: ISnapshot = {id: '123', version: 1n, state: {bar: 'qux'}};
 
     await expect(eventStore.loadSnapshot('abc', '123')).resolves.toEqual(snapshot);
   });
@@ -110,7 +110,7 @@ describe('MemoryEventStore', () => {
     await eventStore.saveSnapshot('abc', {id: '123', version: 1n, state: {bar: 'qux'}});
     await eventStore.dropSnapshot('abc', '123', 2n);
 
-    const snapshot: IAggregateSnapshot = {id: '123', version: 1n, state: {bar: 'qux'}};
+    const snapshot: ISnapshot = {id: '123', version: 1n, state: {bar: 'qux'}};
 
     await expect(eventStore.loadSnapshot('abc', '123')).resolves.toEqual(snapshot);
   });

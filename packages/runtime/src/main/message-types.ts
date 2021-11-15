@@ -18,6 +18,8 @@ export interface IMessage {
 
 /**
  * A message that has an ID.
+ *
+ * This message can be dispatched via messaging system.
  */
 export interface IIdentifiableMessage extends IMessage {
 
@@ -43,7 +45,7 @@ export interface IIdentifiableMessage extends IMessage {
 }
 
 /**
- * A message with and ID and a version (for optimistic concurrency).
+ * A message with an ID and a version (for optimistic concurrency).
  */
 export interface IVersionedMessage extends IIdentifiableMessage {
 
