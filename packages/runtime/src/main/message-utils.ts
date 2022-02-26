@@ -7,7 +7,7 @@ import {Uuid} from './utility-types';
  * request.
  *
  * @param command The command received from an external system.
- * @param requestId The optional request ID used as a command correlation ID.
+ * @param [requestId] The optional request ID used as a command ID and as a correlation ID.
  * @returns The command message.
  */
 export function originateCommand(command: IMessage, requestId: Uuid = uuid4()): IIdentifiableMessage {

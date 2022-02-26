@@ -1,4 +1,4 @@
-import {ISnapshot, IEventStore} from './store-types';
+import {ISnapshot, IEventStore} from './event-store-types';
 import {Uuid} from './utility-types';
 import {IVersionedMessage} from './message-types';
 import {OptimisticLockError} from './OptimisticLockError';
@@ -17,10 +17,6 @@ export class MemoryEventStore implements IEventStore {
    * The map from the aggregate name to a map of snapshots by aggregate ID.
    */
   protected snapshots = new Map<string, Map<Uuid, ISnapshot>>();
-
-  public async exists(name: string, id: Uuid): Promise<boolean> {
-    return this.eventStreams.get(name)?.get(id) != null || this.snapshots.get(name)?.get(id) != null;
-  }
 
   public async loadSnapshot(name: string, id: string): Promise<ISnapshot<any> | undefined> {
     return this.snapshots.get(name)?.get(id);

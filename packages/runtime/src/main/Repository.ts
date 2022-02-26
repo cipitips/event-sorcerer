@@ -1,13 +1,13 @@
-import {ISnapshot, IEventStore, IRepository} from './store-types';
+import {ISnapshot, IEventStore} from './event-store-types';
 import {Uuid} from './utility-types';
 import {IStatefulHandler} from './handler-types';
 import {IVersionedMessage} from './message-types';
 import {IAgent} from './agent-types';
 
 /**
- * The basic implementation of {@link IRepository} that loads aggregates from an {@link IEventStore}.
+ * The repository that loads aggregates from an {@link IEventStore}.
  */
-export class Repository implements IRepository {
+export class Repository {
 
   /**
    * The {@link IEventStore} that is used by the repository to load event streams and snapshots.
@@ -18,11 +18,7 @@ export class Repository implements IRepository {
     this.eventStore = eventStore;
   }
 
-  public exists(agent: IAgent, id: Uuid): Promise<boolean> {
-    return this.eventStore.exists(agent.name, id);
-  }
-
-  public async load<Agent extends IAgent<State, Handler>, State, Handler extends IStatefulHandler<State>>(agent: Agent, handler: Handler, id: Uuid): Promise<Readonly<ISnapshot<State>>> {
+  public async load<Agent extends IAgent<Handler, State>, State, Handler extends IStatefulHandler<State>>(agent: Agent, handler: Handler, id: Uuid): Promise<Readonly<ISnapshot<State>>> {
     const latestSnapshot = await this.eventStore.loadSnapshot(agent.name, id);
 
     const snapshot: ISnapshot<State> = latestSnapshot || {
@@ -41,7 +37,7 @@ export class Repository implements IRepository {
     return snapshot;
   }
 
-  public save<Agent extends IAgent<State>, State>(agent: Agent, snapshot: Readonly<ISnapshot<State>>, events: Array<IVersionedMessage>): Promise<void> {
+  public save<Agent extends IAgent<unknown, State>, State>(agent: Agent, snapshot: Readonly<ISnapshot<State>>, events: Array<IVersionedMessage>): Promise<void> {
     return this.eventStore.saveEvents(agent.name, snapshot, events);
   }
 }

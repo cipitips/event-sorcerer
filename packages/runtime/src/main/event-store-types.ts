@@ -1,7 +1,5 @@
 import {Uuid} from './utility-types';
 import {IVersionedMessage} from './message-types';
-import {IStatefulHandler} from './handler-types';
-import {IAgent} from './agent-types';
 
 /**
  * A snapshot of the aggregate state that was loaded from the repository.
@@ -27,47 +25,9 @@ export interface ISnapshot<State = unknown> {
 }
 
 /**
- * A repository that loads and saves aggregates as streams of events.
- */
-export interface IRepository {
-
-  /**
-   * Returns `true` if an aggregate with the given ID was saved in the past.
-   */
-  exists(agent: IAgent, id: Uuid): Promise<boolean>;
-
-  /**
-   * Restores the state of an aggregate from the persistence layer.
-   *
-   * @param agent The aggregate for which the snapshot is loaded.
-   * @param handler The event handler.
-   * @param id The ID of the aggregate to load.
-   * @returns The snapshot of the aggregate.
-   */
-  load<Agent extends IAgent<State, Handler>, State, Handler extends IStatefulHandler<State>>(agent: Agent, handler: Handler, id: Uuid): Promise<Readonly<ISnapshot<State>>>;
-
-  /**
-   * Persists events that were produced using the given snapshot.
-   *
-   * @param agent The aggregate for which events were dispatched.
-   * @param snapshot The state from which events were derived.
-   * @param events The events that were dispatched.
-   */
-  save<Agent extends IAgent<State>, State>(agent: Agent, snapshot: Readonly<ISnapshot<State>>, events: Array<IVersionedMessage>): Promise<void>;
-}
-
-/**
  * An abstraction of an event-stream database.
  */
 export interface IEventStore {
-
-  /**
-   * Returns `true` if an aggregate with the given ID has at least one event.
-   *
-   * @param name The name of the aggregate.
-   * @param id The ID of the aggregate.
-   */
-  exists(name: string, id: Uuid): Promise<boolean>;
 
   /**
    * Returns the latest available snapshot for the given aggregate or `undefined` if there's no snapshot available.

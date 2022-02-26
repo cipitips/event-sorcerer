@@ -1,5 +1,4 @@
-import {IJtd, IJtdRoot} from '@jtdc/types';
-import {AgentType} from '@event-sorcerer/runtime';
+import {IJtd} from '@jtdc/types';
 
 /**
  * A model of an agent that processes messages.
@@ -7,15 +6,9 @@ import {AgentType} from '@event-sorcerer/runtime';
 export interface IAgentModel {
 
   /**
-   * The type dictates kinds of messages that agent can receive and dispatch.
-   */
-  type: AgentType;
-
-  /**
    * The system-wide unique name of an agent that can be used by persistence or service discovery.
    */
   name: string;
-  state?: IJtdRoot<unknown>;
   commands?: Array<IMessageModel>;
   events?: Array<IMessageModel>;
   alerts?: Array<IMessageModel>;
@@ -43,12 +36,6 @@ export interface IMessageModel {
    * The message description.
    */
   description?: string;
-
-  /**
-   * The JSON pointer to the property of the {@link payload} that should be used as an aggregate ID. Required for
-   * aggregate events and process manager events and commands.
-   */
-  aggregateBy?: string;
 }
 
 /**
@@ -65,10 +52,4 @@ export interface IMessageRefModel {
    * The type of the referenced message.
    */
   type: string;
-
-  /**
-   * The JSON pointer to the property of the {@link IMessageModel.payload} of referenced message that should be used as
-   * an aggregate ID. Required for events adopted by process manager.
-   */
-  aggregateBy?: string;
 }

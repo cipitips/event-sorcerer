@@ -404,7 +404,7 @@ export function compileAgentModel(agentModel: IAgentModel, messageRefResolver: M
         + adoptedEventTypeAliasName
         + `{return ${adoptedEventTypeSetName}.has(message.type)},`;
 
-    // handleAdoptedEvent
+    // handleEvent
     src += `handleAdoptedEvent(handler,event${stateful ? ',state' : ''}){`
         + 'switch(event.type){'
         + mapConcat(adoptedEventRefModels, (ref) => {

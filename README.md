@@ -21,10 +21,10 @@ An agent consumes and produces various types of messages.
 
 There are five agent types:
 
-- **Aggregate** is a stateful projection of events that can be altered with commands.
-- **Event Listener** is a stateless agent that captures events that were dispatched by other agents and produces
+- **Aggregate** (any command → own event, own alert) is a stateful projection of events that can be altered with commands.
+- **Event Listener** (any event → any command, any alert) is a stateless agent that captures events that were dispatched by other agents and produces
   commands.
-- **Process Manager** is a hybrid of Aggregate and Event Listener. It has state and also can capture events from other
+- **Process Manager** (own command → event, alert; event → command, alert) is a hybrid of Aggregate and Event Listener. It has state and also can capture events from other
   agents.
 - **Service** is an agent that uses commands and events for communication but has an arbitrary internal implementation.
   For example, this agent type can be used to implement cron, or an adapter to non-event oriented storage.

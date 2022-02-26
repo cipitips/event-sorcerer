@@ -1,5 +1,5 @@
 import {IIdentifiableMessage, IMessage} from './message-types';
-import {IRepository} from './store-types';
+import {IRepository} from './event-store-types';
 import {deriveCommand, deriveEvent, deriveVersionedEvent} from './message-utils';
 import {Arrays} from '@smikhalevski/stdlib';
 import {IAgent} from './agent-types';
@@ -30,12 +30,12 @@ export class AgentRouter {
     const commands: Array<IMessage> = [];
 
     for (const [agent, handler] of this.agentHandlers) {
-      if (!agent.adoptedEventMap?.has(event.type)) {
+      if (!agent.handleEvent || !agent.adoptedEventMap?.has(event.type)) {
         continue;
       }
       const snapshot = agent.getAggregateId ? await this.repository.load(agent, handler, agent.getAggregateId(event)) : undefined;
 
-      const c = await agent.handleAdoptedEvent?.(handler, event, snapshot?.state);
+      const c = await agent.handleEvent(handler, event, snapshot?.state);
       if (c) {
         commands.push(...Arrays.fromMany(c));
       }
@@ -49,12 +49,12 @@ export class AgentRouter {
     let events: readonly IMessage[] | undefined;
 
     for (const [agent, handler] of this.agentHandlers) {
-      if (!agent.commandTypes?.has(command.type)) {
+      if (!agent.handleCommand || !agent.commandTypes?.has(command.type)) {
         continue;
       }
       const snapshot = agent.getAggregateId ? await this.repository.load(agent, handler, agent.getAggregateId(command)) : undefined;
 
-      const e = await agent.handleCommand?.(handler, command, snapshot?.state);
+      const e = await agent.handleCommand(handler, command, snapshot?.state);
       if (e) {
         events = agent.getAggregateId ? Arrays.fromMany(e).map((event, index) => deriveVersionedEvent(command, event, snapshot?.version || 0n, index)) : Arrays.fromMany(e).map((event, index) => deriveEvent(command, event, index));
       }
